@@ -1,156 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Quest</title>
+    <title>Retro Pixel Platformer</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #1a1a1a;
-            overflow: hidden;
-            font-family: 'Press Start 2P', cursive;
-        }
-
-        #game-container {
-            position: relative;
+        * { margin: 0; padding: 0; }
+        body { background: #000; overflow: hidden; }
+        canvas { image-rendering: pixelated; }
+        .crt {
+            position: fixed;
             width: 100vw;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .crt-effect {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 4px 100%;
+            background: linear-gradient(rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.25) 50%),
+                        linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
+            background-size: 100% 3px, 6px 100%;
             pointer-events: none;
             z-index: 999;
         }
-
-        .title-screen {
-            position: absolute;
-            text-align: center;
-            color: #fff;
-            z-index: 1000;
-            text-shadow: 4px 4px #000;
-        }
-
-        .pixel-button {
-            background: #4a4a4a;
-            border: 4px solid #2a2a2a;
-            color: #fff;
-            padding: 15px 30px;
-            font-size: 24px;
-            margin: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Press Start 2P', cursive;
-        }
-
-        .pixel-button:hover {
-            background: #6a6a6a;
-            transform: scale(1.1);
-        }
-
         .hud {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 10px;
+            left: 10px;
             color: #fff;
+            font-family: 'Courier New', monospace;
             font-size: 24px;
+            text-shadow: 2px 2px #000;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border: 4px solid #2a2a2a;
-        }
-        
-        .game-over {
-            position: absolute;
-            color: #ff0000;
-            font-size: 64px;
-            text-shadow: 6px 6px #000;
-            z-index: 1001;
-            display: none;
-        }
-        
-        .powerup-hud {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            color: #ffeb3b;
-            font-size: 18px;
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="game-container">
-        <div class="crt-effect"></div>
-        <div class="hud" id="hud">Coins: 0 | Lives: ❤❤❤ | Level: 1</div>
-        <div class="powerup-hud" id="powerupHud"></div>
-        <div class="title-screen" id="titleScreen">
-            <h1 style="font-size: 48px; margin-bottom: 40px;">RETRO QUEST</h1>
-            <button class="pixel-button" onclick="startGame()">START ADVENTURE</button>
-            <p style="margin-top: 30px; font-size: 16px;">Use ← → to move | SPACE to jump</p>
-        </div>
-        <div class="game-over" id="gameOver">GAME OVER!</div>
-    </div>
-
-<script>
-// Base64 Encoded Assets
-const ASSETS = {
-    player: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVRYR+3WQQqAMAwE0fz7L72IFxEktC5mPATGm4R2fFJKmXv3Y0Br7Q1Ya/0DzjkPAVprHwDn3AN47x8A59wDxBg/AHmeH4BSygNQa/0A1Fo/AGOMB2DO+QDMOR+AUsr9B1zX9QJ47x+A4zg+AKVUO8/zBVBK/QBSSm/fHwCJF0h+Zz2UggAAAABJRU5ErkJggg==",
-    
-    tile: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAbklEQVRIS2NkoDFgpLH5DMM/AIY/ABwdHf8jBwJaEMjIyPgfWwCgBYG0tPR/bAGAFgRSUlL/sQUAWhBISEj8xxYAaEEgLi7+H1sAoAWBmJjYf2wBgBYEoqKi/7EFAFoQiIiI/McWAGhBICws/B9bAKAFAQCUkSUj8Gj34AAAAABJRU5ErkJggg==",
-    
-    coin: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAoElEQVRYR2NkoDFgpLH5DMM/AIY/AJydnf8jBwJaEMjIyPgfWwCgBYGMjMx/bAGAFgQyMjL/sQUAWhDIyMj8xxYAaEEgKyv7H1sAoAWBnJzcf2wBgBYE8vLy/7EFAFoQKCgo/McWAGhBoKio+B9bAKAFgZKS0n9sAYAWBMrKyv+xBQBaEKioqPzHFgBoQaCqqvofWwCgBQEArKsmI2mhT5MAAAAASUVORK5CYII=",
-    
-    enemy: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAp0lEQVRYR+2WQQqAMAwF0/z7L72IFxEktC5mPATGTUJ7PimlzL37M6C19gSstZ4Ac84nwJzzCTDnfALMOZ8AKaUnwFrrCbDWegKstZ4A55xPgHPuCeC9fwK8908A7/0TwHv/BPDenwBEBH8AiOAPAETwBwAR/AFABH8AEMEfAETwBwAR/AFABH8AEMEfAETwBwAR/AFABH8AEMEfAETwBwAR/AHwB5h0Iy3ZoSvZAAAAAElFTkSuQmCC",
-    
-    powerup: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAq0lEQVRIS2NkoDFgpLH5DMM/AIY/AFxdXf8jBwJaEMjIyPgfWwCgBYGMjMx/bAGAFgQyMjL/sQUAWhDIyMj8xxYAaEEgKyv7H1sAoAWBnJzcf2wBgBYE8vLy/7EFAFoQKCgo/McWAGhBoKio+B9bAKAFgZKS0n9sAYAWBMrKyv+xBQBaEKioqPzHFgBoQaCqqvofWwCgBQEArKsmI2mhT5MAAAAASUVORK5CYII=",
-    
-    bg: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAJ0lEQVRIS2NkoDFgpLH5DMM/AIY/ANzc3P4jBwJaEMjIyPgfWwAAJd4EICWvR5IAAAAASUVORK5CYII="
-};
-
-const LEVEL_DATA = {
-    layers: [{
-        name: "platforms",
-        data: [
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,
-            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-        ],
-        width: 20,
-        height: 10
-    }],
-    tilewidth: 32,
-    tileheight: 32
-};
-
-// Game Configuration
+    <div class="crt"></div>
+    <div class="hud">SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span></div>
+    <script>
 const config = {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
-    backgroundColor: '#1a1a1a',
     parent: 'game-container',
     pixelArt: true,
     scene: {
@@ -167,160 +53,92 @@ const config = {
     }
 };
 
-let game = new Phaser.Game(config);
-let player, cursors, coins, enemies;
-let score = 0, lives = 3;
+const game = new Phaser.Game(config);
+let player, cursors, platforms, coins, score = 0, lives = 3;
 
 function preload() {
-    this.load.image('tile', ASSETS.tile);
-    this.load.image('coin', ASSETS.coin);
-    this.load.image('enemy', ASSETS.enemy);
-    this.load.image('powerup', ASSETS.powerup);
-    this.load.spritesheet('player', ASSETS.player, {
+    // Embedded base64 assets
+    this.load.image('ground', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAYklEQVRYR+3WQQqAIBQF0fz7L72IFxEktC5mPATGTUL7PimlzL37M6C19gSstZ4Ac84nwJzzCTDnfALMOZ8AIYQnwFrrCbDWegKstZ4A55xPgHPuCeC9fwK8908A7/0TwHv/BPDenwAXLx8jLy10LwAAAABJRU5ErkJggg==');
+    this.load.spritesheet('player', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABhElEQVR4nO2YQU7DMBBF/5K0C6Q3aA/AjnoEjtAjcAR6hO4QqVJX3XCEHiFpF0hv0B6gN0gXlC4gxkkcO3Zc8D+kxUxkv5n42x6CIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAiCIAjCL2FZ1r3jOB+u6365rvvtOM6nZVn3tY0tl8tH3/d/zsH3/Z/lcvlYy5hlWU+6rn8BQDdN81XX9a9aAQzD+OgD0HW9qQXANE0JQAhBAlAUJQFomlYLwJ0EwHEcCUBV1VoAbiUAnudJAKqq1gJwIwHwPE8CUBTl6gCqqj4DgG3brwBg2/YrANi2/Vo5wOtyuXzqVv6rW/kvRVGeKgVwHOejW/kv0zSfKwVwXfe9W/kvwzAeKgVwHOetW/kvXdcfKgXwPO+tW/kvTdPuKwVwXfe1W/kvVVXvKgVwHOelW/kvRVHuKgVwHOe5W/kvWZbvKgVwXfelW/kvSZJuKwVwHOe1W/kvSZJuKwVwXfetW/kvURRvKgVwXfe9W/kvQRBuKgVwXfejW/kvQRBuKgVwXfezW/kvQRBuKgVwXferW/kvQRBuKgVwXfe7W/kvQRBuKgVwXfe/W/kvQRBu/gEldjv47qjLggAAAABJRU5ErkJggg==', {
         frameWidth: 32,
         frameHeight: 32
     });
+    this.load.image('coin', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAp0lEQVRYR+2WQQ6AIAxE2fD/P7kQYgxQoNvFkIvG0r4p7YCIzH3cAJjZJYCZnQGY2RmAmZ0BmNkZgJmdAZjZGYDMLgFE5BKAiFwCiMglABG5BCCSMwAROQUQkUsAEbkEEJFLABE5AxCRUwARuQQQkUsAETkDEJFTABG5BBCRSwAROQUQkVMAEbkEEJFTABE5AxCRUwARuQQQkUsAETkFEJFLABE5AxCRUwARuQQQkUsAETkFEJFLABE5AxCRU4B/AO4BZvYCD8jZAAAAAElFTkSuQmCC');
 }
 
 function create() {
-    // Create tilemap
-    const map = this.make.tilemap({
-        data: LEVEL_DATA.layers[0].data,
-        tileWidth: LEVEL_DATA.tilewidth,
-        tileHeight: LEVEL_DATA.tileheight
-    });
-    const tiles = map.addTilesetImage('tile');
-    const layer = map.createLayer(0, tiles, 0, 0);
-    layer.setCollisionBetween(1, 1);
+    // Platforms
+    platforms = this.physics.add.staticGroup();
+    platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+    platforms.create(600, 400, 'ground');
+    platforms.create(100, 250, 'ground');
+    platforms.create(300, 150, 'ground');
 
-    // Create player
+    // Player
     player = this.physics.add.sprite(100, 450, 'player');
+    player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
-    // Create coins
+    // Coins
     coins = this.physics.add.group({
         key: 'coin',
-        repeat: 5,
-        setXY: { x: 100, y: 0, stepX: 100 }
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 }
     });
-
-    // Create enemies
-    enemies = this.physics.add.group({
-        key: 'enemy',
-        repeat: 2,
-        setXY: { x: 400, y: 300, stepX: 100 }
-    });
+    coins.children.iterate(child => child.setBounceY(Phaser.Math.FloatBetween(0.2, 0.5)));
 
     // Collisions
-    this.physics.add.collider(player, layer);
-    this.physics.add.collider(enemies, layer);
+    this.physics.add.collider(player, platforms);
+    this.physics.add.collider(coins, platforms);
     this.physics.add.overlap(player, coins, collectCoin);
-    this.physics.add.overlap(player, enemies, hitEnemy);
 
     // Animations
     this.anims.create({
-        key: 'run',
+        key: 'left',
         frames: this.anims.generateFrameNumbers('player', { start: 0, end: 3 }),
         frameRate: 10,
         repeat: -1
+    });
+
+    this.anims.create({
+        key: 'idle',
+        frames: [{ key: 'player', frame: 4 }],
+        frameRate: 20
     });
 
     cursors = this.input.keyboard.createCursorKeys();
 }
 
 function update() {
-    // Update parallax
-    this.bg1.tilePositionX = this.cameras.main.scrollX * 0.2;
-    this.bg2.tilePositionX = this.cameras.main.scrollX * 0.5;
-
-    // Player movement
     if (cursors.left.isDown) {
-        player.setVelocityX(-200);
-        player.anims.play('run', true);
+        player.setVelocityX(-160);
+        player.anims.play('left', true);
         player.flipX = true;
     } else if (cursors.right.isDown) {
-        player.setVelocityX(200);
-        player.anims.play('run', true);
+        player.setVelocityX(160);
+        player.anims.play('left', true);
         player.flipX = false;
     } else {
         player.setVelocityX(0);
-        player.anims.stop();
+        player.anims.play('idle');
     }
 
     if (cursors.up.isDown && player.body.touching.down) {
-        player.setVelocityY(-500);
+        player.setVelocityY(-330);
     }
 }
 
 function collectCoin(player, coin) {
-    // Add particles
-    const emitter = this.add.particles(coin.x, coin.y, 'coin', {
-        speed: { min: -200, max: 200 },
-        angle: { min: 0, max: 360 },
-        scale: { start: 0.5, end: 0 },
-        lifespan: 500,
-        quantity: 5
-    });
-    emitter.explode();
-    
-    // Coin logic
     coin.disableBody(true, true);
     score += 10;
-    document.getElementById('hud').textContent = `Coins: ${score} | Lives: ${'❤'.repeat(lives)}`;
-    this.cameras.main.shake(100, 0.01);
-}
-
-function hitEnemy(player, enemy) {
-    if (!isInvincible) {
-        lives = Math.max(0, lives - 1);
-        document.getElementById('hud').textContent = 
-            `Coins: ${score} | Lives: ${'❤'.repeat(lives)} | Level: ${currentLevel}`;
-        this.cameras.main.shake(300, 0.02);
-        
-        if (lives <= 0) {
-            document.getElementById('gameOver').style.display = 'block';
-            this.physics.pause();
-        }
-        
-        isInvincible = true;
-        player.setTint(0xff0000);
-        this.time.delayedCall(2000, () => {
-            isInvincible = false;
-            player.clearTint();
+    document.getElementById('score').textContent = score;
+    
+    if (coins.countActive(true) === 0) {
+        coins.children.iterate(child => {
+            child.enableBody(true, child.x, 0, true, true);
         });
     }
 }
-
-function collectPowerup(player, powerup) {
-    powerup.disableBody(true, true);
-    isInvincible = true;
-    player.setTint(0x00ff00);
-    document.getElementById('powerupHud').textContent = 'INVINCIBLE!';
-    this.time.delayedCall(5000, () => {
-        isInvincible = false;
-        player.clearTint();
-        document.getElementById('powerupHud').textContent = '';
-    });
-}
-
-function nextLevel() {
-    currentLevel++;
-    if (currentLevel > LEVELS.length) {
-        // Show victory screen
-        return;
-    }
-    
-    this.scene.restart();
-    this.load.tilemapTiledJSON('map', LEVELS[currentLevel-1]);
-    document.getElementById('hud').textContent = 
-        `Coins: ${score} | Lives: ${'❤'.repeat(lives)} | Level: ${currentLevel}`;
-}
-
-function startGame() {
-    document.getElementById('titleScreen').style.display = 'none';
-    game.events.emit('resume');
-}
-
-</script>
+    </script>
 </body>
 </html>
