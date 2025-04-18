@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Quest - Pixel Platformer</title>
+    <title>Retro Quest</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
     <style>
         * {
@@ -92,6 +92,7 @@
             font-size: 18px;
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="game-container">
@@ -107,6 +108,44 @@
     </div>
 
 <script>
+// Base64 Encoded Assets
+const ASSETS = {
+    player: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVRYR+3WQQqAMAwE0fz7L72IFxEktC5mPATGm4R2fFJKmXv3Y0Br7Q1Ya/0DzjkPAVprHwDn3AN47x8A59wDxBg/AHmeH4BSygNQa/0A1Fo/AGOMB2DO+QDMOR+AUsr9B1zX9QJ47x+A4zg+AKVUO8/zBVBK/QBSSm/fHwCJF0h+Zz2UggAAAABJRU5ErkJggg==",
+    
+    tile: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAbklEQVRIS2NkoDFgpLH5DMM/AIY/ABwdHf8jBwJaEMjIyPgfWwCgBYG0tPR/bAGAFgRSUlL/sQUAWhBISEj8xxYAaEEgLi7+H1sAoAWBmJjYf2wBgBYEoqKi/7EFAFoQiIiI/McWAGhBICws/B9bAKAFAQCUkSUj8Gj34AAAAABJRU5ErkJggg==",
+    
+    coin: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAoElEQVRYR2NkoDFgpLH5DMM/AIY/AJydnf8jBwJaEMjIyPgfWwCgBYGMjMx/bAGAFgQyMjL/sQUAWhDIyMj8xxYAaEEgKyv7H1sAoAWBnJzcf2wBgBYE8vLy/7EFAFoQKCgo/McWAGhBoKio+B9bAKAFgZKS0n9sAYAWBMrKyv+xBQBaEKioqPzHFgBoQaCqqvofWwCgBQEArKsmI2mhT5MAAAAASUVORK5CYII=",
+    
+    enemy: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAp0lEQVRYR+2WQQqAMAwF0/z7L72IFxEktC5mPATGTUJ7PimlzL37M6C19gSstZ4Ac84nwJzzCTDnfALMOZ8AKaUnwFrrCbDWegKstZ4A55xPgHPuCeC9fwK8908A7/0TwHv/BPDenwBEBH8AiOAPAETwBwAR/AFABH8AEMEfAETwBwAR/AFABH8AEMEfAETwBwAR/AFABH8AEMEfAETwBwAR/AHwB5h0Iy3ZoSvZAAAAAElFTkSuQmCC",
+    
+    powerup: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAq0lEQVRIS2NkoDFgpLH5DMM/AIY/AFxdXf8jBwJaEMjIyPgfWwCgBYGMjMx/bAGAFgQyMjL/sQUAWhDIyMj8xxYAaEEgKyv7H1sAoAWBnJzcf2wBgBYE8vLy/7EFAFoQKCgo/McWAGhBoKio+B9bAKAFgZKS0n9sAYAWBMrKyv+xBQBaEKioqPzHFgBoQaCqqvofWwCgBQEArKsmI2mhT5MAAAAASUVORK5CYII=",
+    
+    bg: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAJ0lEQVRIS2NkoDFgpLH5DMM/AIY/ANzc3P4jBwJaEMjIyPgfWwAAJd4EICWvR5IAAAAASUVORK5CYII="
+};
+
+const LEVEL_DATA = {
+    layers: [{
+        name: "platforms",
+        data: [
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+        ],
+        width: 20,
+        height: 10
+    }],
+    tilewidth: 32,
+    tileheight: 32
+};
+
+// Game Configuration
 const config = {
     type: Phaser.AUTO,
     width: 800,
@@ -129,104 +168,64 @@ const config = {
 };
 
 let game = new Phaser.Game(config);
-let player, cursors, coins, enemies, powerups;
-let score = 0, lives = 3, currentLevel = 1, isInvincible = false;
-const LEVELS = ['level1', 'level2', 'level3'];
+let player, cursors, coins, enemies;
+let score = 0, lives = 3;
 
 function preload() {
-    this.load.audio('bgm', 'https://assets.codepen.io/439000/chiptune.mp3');
-    this.load.spritesheet('enemy', 'https://assets.codepen.io/439000/pixel_enemy.png', { frameWidth: 32 });
-    this.load.image('powerup', 'https://assets.codepen.io/439000/pixel_powerup.png');
-    this.load.image('bg1', 'https://assets.codepen.io/439000/parallax_bg1.png');
-    this.load.image('bg2', 'https://assets.codepen.io/439000/parallax_bg2.png');
-    this.load.image('tiles', 'https://assets.codepen.io/439000/platformer_tiles.png');
-    this.load.tilemapTiledJSON('map', 'https://gist.githubusercontent.com/phantomd/.../level1.json');
-    this.load.spritesheet('player', 'https://assets.codepen.io/439000/pixel_player.png', {
+    this.load.image('tile', ASSETS.tile);
+    this.load.image('coin', ASSETS.coin);
+    this.load.image('enemy', ASSETS.enemy);
+    this.load.image('powerup', ASSETS.powerup);
+    this.load.spritesheet('player', ASSETS.player, {
         frameWidth: 32,
         frameHeight: 32
     });
-    this.load.image('coin', 'https://assets.codepen.io/439000/pixel_coin.png');
 }
 
 function create() {
-    // Tilemap setup
-    const map = this.make.tilemap({ key: 'map' });
-    const tileset = map.addTilesetImage('platformer_tiles', 'tiles');
-    const platformLayer = map.createLayer('platforms', tileset);
-    platformLayer.setCollisionByProperty({ collides: true });
+    // Create tilemap
+    const map = this.make.tilemap({
+        data: LEVEL_DATA.layers[0].data,
+        tileWidth: LEVEL_DATA.tilewidth,
+        tileHeight: LEVEL_DATA.tileheight
+    });
+    const tiles = map.addTilesetImage('tile');
+    const layer = map.createLayer(0, tiles, 0, 0);
+    layer.setCollisionBetween(1, 1);
 
-    // Player setup
+    // Create player
     player = this.physics.add.sprite(100, 450, 'player');
     player.setCollideWorldBounds(true);
-    
+
+    // Create coins
+    coins = this.physics.add.group({
+        key: 'coin',
+        repeat: 5,
+        setXY: { x: 100, y: 0, stepX: 100 }
+    });
+
+    // Create enemies
+    enemies = this.physics.add.group({
+        key: 'enemy',
+        repeat: 2,
+        setXY: { x: 400, y: 300, stepX: 100 }
+    });
+
+    // Collisions
+    this.physics.add.collider(player, layer);
+    this.physics.add.collider(enemies, layer);
+    this.physics.add.overlap(player, coins, collectCoin);
+    this.physics.add.overlap(player, enemies, hitEnemy);
+
     // Animations
     this.anims.create({
         key: 'run',
-        frames: this.anims.generateFrameNumbers('player', { start: 4, end: 7 }),
+        frames: this.anims.generateFrameNumbers('player', { start: 0, end: 3 }),
         frameRate: 10,
         repeat: -1
     });
 
-    // Coins setup
-    coins = this.physics.add.group();
-    map.getObjectLayer('coins').objects.forEach(coin => {
-        coins.create(coin.x, coin.y, 'coin').setScale(0.5);
-    });
-
-    // Camera setup
-    this.cameras.main.startFollow(player);
-    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
-    // Controls
     cursors = this.input.keyboard.createCursorKeys();
-
-    // Add parallax backgrounds
-    this.bg1 = this.add.tileSprite(0, 0, game.config.width, game.config.height, 'bg1')
-        .setScrollFactor(0.2);
-    this.bg2 = this.add.tileSprite(0, 0, game.config.width, game.config.height, 'bg2')
-        .setScrollFactor(0.5);
-
-    // Add sound
-    this.bgm = this.sound.add('bgm', { loop: true });
-    this.bgm.play();
-
-    // Add enemies
-    enemies = this.physics.add.group();
-    map.getObjectLayer('enemies').objects.forEach(enemy => {
-        const e = enemies.create(enemy.x, enemy.y, 'enemy')
-            .setVelocityX(100)
-            .setCollideWorldBounds(true)
-            .setBounceX(1);
-        
-        this.anims.create({
-            key: `enemy-${e.texture.key}-walk`,
-            frames: this.anims.generateFrameNumbers('enemy', { start: 0, end: 3 }),
-            frameRate: 6,
-            repeat: -1
-        });
-        e.anims.play(`enemy-${e.texture.key}-walk`);
-    });
-
-    // Add powerups
-    powerups = this.physics.add.group();
-    map.getObjectLayer('powerups').objects.forEach(pu => {
-        powerups.create(pu.x, pu.y, 'powerup');
-    });
-
-    // Add collisions
-    this.physics.add.overlap(player, enemies, hitEnemy, null, this);
-    this.physics.add.overlap(player, powerups, collectPowerup, null, this);
-
-    // Secret areas
-    const secretZones = map.getObjectLayer('secrets').objects;
-    secretZones.forEach(zone => {
-        const area = this.add.zone(zone.x, zone.y, zone.width, zone.height)
-            .setOrigin(0);
-        this.physics.add.overlap(player, area, () => {
-            coins.createMultiple({ key: 'coin', quantity: 5 });
-            this.cameras.main.flash(200, 0, 255, 0);
-        });
-    });
 }
 
 function update() {
